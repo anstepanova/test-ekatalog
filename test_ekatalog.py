@@ -5,6 +5,7 @@ import selenium
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions
+from resources.testing_data import *
 
 
 @pytest.fixture
@@ -18,12 +19,6 @@ def driver():
 
 def make_screenshot(driver, filename):
     driver.save_screenshot(f'results/{filename}.png')
-
-
-# class TestMainPage:
-#     def test_main_page_loading(self, driver):
-#         driver.get('https://www.e-katalog.ru/')
-#         assert 'e-katalog' in driver.title.lower()
 
 
 class LoginLogout:
@@ -72,7 +67,7 @@ class LoginLogout:
 
 class TestLogin:
     @pytest.mark.parametrize('login, password', [
-        ('***', '***')
+        (LOGIN, PASSWORD)
     ])
     def test_login(self, driver, login, password):
         driver = LoginLogout.login(driver, login, password)
@@ -91,7 +86,7 @@ class TestCameras:
         ('Sony', 'HDR-AZ1VB')
     ])
     @pytest.mark.parametrize('login, password', [
-        ('***', '***')
+        (LOGIN, PASSWORD)
     ])
     def test_find_cameras_with_nfc(self, driver, brand, model, login, password):
         driver = LoginLogout.login(driver, login, password)
