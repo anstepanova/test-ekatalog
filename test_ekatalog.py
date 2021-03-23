@@ -1,4 +1,5 @@
 import pytest
+import re
 
 import selenium
 from selenium.webdriver.common.by import By
@@ -19,10 +20,10 @@ def make_screenshot(driver, filename):
     driver.save_screenshot(f'results/{filename}.png')
 
 
-class TestMainPage:
-    def test_main_page_loading(self, driver):
-        driver.get('https://www.e-katalog.ru/')
-        assert 'e-katalog' in driver.title.lower()
+# class TestMainPage:
+#     def test_main_page_loading(self, driver):
+#         driver.get('https://www.e-katalog.ru/')
+#         assert 'e-katalog' in driver.title.lower()
 
 
 class LoginLogout:
@@ -207,12 +208,53 @@ class TestCameras:
         assert 'войти' in login.text.lower()
 
 
+class TestTablets:
+    @pytest.mark.parametrize('price', [
+        1000,
+        3000,
+        6000,
+    ])
+    def test_choosing_tablets_lower_than_set_price(self, price, driver):
+        def get_tablets():
+            tablets_with_range_of_price = driver.find_elements(By.XPATH, '//*[@class="model-price-range"]')
+            tablets_with_one_price = driver.find_elements(By.XPATH, '//*[@class="pr31 ib"]')
+            return tablets_with_range_of_price + tablets_with_one_price
+
+        def get_price_from_str(s):
+            price_from_str = re.search(r'\d+', s.replace(' ', ''))
+            return int(price_from_str[0]) if price_from_str is not None else None
+
+        driver.find_element(By.XPATH, '//*[@class="mainmenu-list ff-roboto"]/li[2]').click()
+        WebDriverWait(driver, 10).until(
+            expected_conditions.presence_of_element_located(
+                (By.XPATH, '//*[@class="mainmenu-subitem mainmenu-icon30"]')
+            )
+        ).click()
+        max_price = driver.find_element(By.ID, 'maxPrice_')
+        driver.execute_script("arguments[0].scrollIntoView(true);", max_price)
+        max_price.clear()
+        max_price.send_keys(price)
+        show = driver.find_element(By.CSS_SELECTOR, '#match_submit')
+        driver.execute_script("arguments[0].scrollIntoView(true);", show)
+        show.click()
+        can_show_more = True
+        while can_show_more:
+            try:
+                WebDriverWait(driver, 10).until(
+                    expected_conditions.presence_of_element_located(
+                        (By.XPATH, '//*[@class="list-more-div h blue-button"]')
+                    )
+                ).click()
+            except Exception as e:
+                can_show_more = False
+        tablets = get_tablets()
+        assert len(tablets) != 0
+        for tablet in tablets:
+            tablet_price = get_price_from_str(tablet.text)
+            assert tablet_price is not None and tablet_price < price
 
 
 
-        # for current_brand in elem.find_element(By.TAG_NAME, 'li'):
-        #     if current_brand.text.lower() == brand.lower():
-        #         current_brand.click()
 
 
 
