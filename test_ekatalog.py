@@ -1,7 +1,9 @@
 import pytest
 import re
-
+import allure
 import selenium
+
+from allure_commons.types import AttachmentType
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions
@@ -18,7 +20,11 @@ def driver():
 
 
 def make_screenshot(driver, filename):
-    driver.save_screenshot(f'results/{filename}.png')
+    # allure.attach(filename.replace('_', ' '),
+    #               driver.get_screenshot_as_png(),
+    #               AttachmentType.PNG)
+    allure.attach(driver.get_screenshot_as_png(), attachment_type=AttachmentType.PNG)
+    # allure.attach.file(f)
 
 
 class LoginLogout:
@@ -66,19 +72,24 @@ class LoginLogout:
 
 
 class TestLogin:
+    @allure.feature('Test login')
+    @allure.story('Сhecking whether login was successful')
     @pytest.mark.parametrize('login, password', [
         (LOGIN, PASSWORD)
     ])
     def test_login(self, driver, login, password):
-        driver = LoginLogout.login(driver, login, password)
-        elem = WebDriverWait(driver, 10).until(
-            expected_conditions.presence_of_element_located(
-                (By.CSS_SELECTOR, '#mui_user_login_row > a'))
-        )
-        assert elem.text == 'Anastasia'
-        driver = LoginLogout.logout(driver)
-        elem = driver.find_element(By.CSS_SELECTOR, '#mui_user_login_row > span')
-        assert 'войти' in elem.text.lower()
+        with allure.step('Entering the username and password'):
+            driver = LoginLogout.login(driver, login, password)
+            elem = WebDriverWait(driver, 10).until(
+                expected_conditions.presence_of_element_located(
+                    (By.CSS_SELECTOR, '#mui_user_login_row > a'))
+            )
+        with allure.step('Checking whether we logged into account'):
+            assert elem.text == 'Anastasia'
+        with allure.step('Exiting from the account'):
+            driver = LoginLogout.logout(driver)
+            elem = driver.find_element(By.CSS_SELECTOR, '#mui_user_login_row > span')
+            assert 'войти' in elem.text.lower()
 
 
 class TestCameras:
@@ -241,10 +252,3 @@ class TestTablets:
         for tablet in tablets:
             tablet_price = get_price_from_str(tablet.text)
             assert tablet_price is not None and tablet_price < price
-
-
-
-
-
-
-

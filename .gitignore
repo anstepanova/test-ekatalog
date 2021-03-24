@@ -133,3 +133,4 @@ dmypy.json
 chromedriver
 results/*
 resources/*
+allure_report/*
