@@ -129,20 +129,12 @@ class TestCameras:
         make_screenshot(driver, 'click_show_button')
         needful_camera = f'{brand.lower()} {model.lower()}'
         camera = None
-        for i in range(1, 100):
-            try:
-                current_camera = driver.find_element(By.XPATH, f'//*[@id="list_form1"]/div[{i}]'
-                                                               f'/div[2]/table/tbody/tr/td[2]'
-                                                               f'/table/tbody/tr/td[1]/a/span')
-                driver.execute_script("arguments[0].scrollIntoView(true);", current_camera)
-            except Exception:
-                continue
+        cameras = driver.find_elements(By.XPATH, f'//*[@id="list_form1"]/div[*]'
+                                                 f'/div[2]/table/tbody/tr/td[2]'
+                                                 f'/table/tbody/tr/td[1]/a')
+        for current_camera in cameras:
             if current_camera.text.lower() == needful_camera:
                 camera = current_camera
-                driver.execute_script("window.scrollBy(0, -100)", camera)
-                camera = driver.find_element(By.XPATH, f'//*[@id="list_form1"]/div[{i}]'
-                                                       f'/div[2]/table/tbody/tr/td[2]'
-                                                       f'/table/tbody/tr/td[1]/a')
                 break
         if camera is None:
             assert False
@@ -158,12 +150,9 @@ class TestCameras:
         driver.find_element(By.CSS_SELECTOR, '#mui_user_login_row > a').click()
         make_screenshot(driver, 'open_bookmarks')
         bookmark = None
-        for i in range(1, 100):
-            try:
-                current_bookmark = driver.find_element(By.XPATH, f'//*[@class="touchcarousel-container"]'
-                                                                 f'/div[{i}]/a[2]/span')
-            except Exception:
-                continue
+        bookmarks = driver.find_elements(By.XPATH, f'//*[@class="touchcarousel-container"]'
+                                                   f'/div[*]/a[2]')
+        for current_bookmark in bookmarks:
             if current_bookmark.text.lower() == needful_camera:
                 bookmark = current_bookmark
                 current_bookmark.click()
@@ -184,16 +173,17 @@ class TestCameras:
         driver.find_element(By.CSS_SELECTOR, '#mui_user_login_row > a').click()
         driver.find_element(By.XPATH, '//*[@class="user-menu__section wu_isaw"]').click()
         has_camera = False
-        for i in range(1, 100):
-            try:
-                current_camera = driver.find_element(By.XPATH, f'//*[@class="user-history-div"]/a[{i}]/u')
-            except Exception:
-                continue
-            if current_camera.text.lower() == needful_camera:
+        cameras = driver.find_elements(By.XPATH, f'//*[@class="user-history-div"]/a[*]')
+        for i, current_camera in enumerate(cameras):
+            camera_name_with_price = current_camera.text.lower()
+            camera_name = camera_name_with_price[:camera_name_with_price.find('от')]
+            camera_name = camera_name.strip()
+            print(f'camera_name={camera_name}')
+            if camera_name == needful_camera:
                 has_camera = True
                 WebDriverWait(driver, 10).until(
                     expected_conditions.presence_of_element_located(
-                        (By.XPATH, f'//*[@class="user-history-div"]/a[{i}]/div/div')
+                        (By.XPATH, f'//*[@class="user-history-div"]/a[{i+1}]/div/div')
                     )
                 ).click()
         if not has_camera:
