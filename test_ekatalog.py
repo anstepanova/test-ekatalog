@@ -186,6 +186,7 @@ class TestCameras:
                         (By.XPATH, f'//*[@class="user-history-div"]/a[{i+1}]/div/div')
                     )
                 ).click()
+                make_screenshot(driver, 'remove_camera_from_history')
         if not has_camera:
             assert False
         LoginLogout.logout(driver)
@@ -210,11 +211,13 @@ class TestTablets:
             return int(price_from_str[0]) if price_from_str is not None else None
 
         driver.find_element(By.XPATH, '//*[@class="mainmenu-list ff-roboto"]/li[2]').click()
+        make_screenshot(driver, 'click_on_computer_button')
         WebDriverWait(driver, 10).until(
             expected_conditions.presence_of_element_located(
                 (By.XPATH, '//*[@class="mainmenu-subitem mainmenu-icon30"]')
             )
         ).click()
+        make_screenshot(driver, 'click_on_tablets_button')
         max_price = driver.find_element(By.ID, 'maxPrice_')
         driver.execute_script("arguments[0].scrollIntoView(true);", max_price)
         max_price.clear()
@@ -232,6 +235,7 @@ class TestTablets:
                 ).click()
             except Exception as e:
                 can_show_more = False
+        make_screenshot(driver, 'show_all_tablets')
         tablets = get_tablets()
         assert len(tablets) != 0
         for tablet in tablets:
