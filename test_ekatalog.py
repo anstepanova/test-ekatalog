@@ -8,6 +8,30 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions
 from resources.testing_data import *
+from functools import wraps
+
+
+def make_screenshot(driver, filename=None):
+    allure.attach(driver.get_screenshot_as_png(), attachment_type=AttachmentType.PNG)
+
+
+def find_element_and_make_screenshot(driver, by, value):
+    elem = driver.find_element(by, value)
+    driver.execute_script("arguments[0].scrollIntoView(true);", elem)
+    make_screenshot(driver)
+
+
+def make_screenshot_on_exception(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            res = func(*args, **kwargs)
+        except Exception:
+            make_screenshot(kwargs.get('driver'))
+            raise
+        return res
+
+    return wrapper
 
 
 @pytest.fixture
@@ -15,12 +39,11 @@ def driver():
     driver = selenium.webdriver.Chrome('./chromedriver')
     driver.maximize_window()
     driver.get('https://www.e-katalog.ru/')
-    yield driver
+    try:
+        yield driver
+    except Exception:
+        make_screenshot(driver)
     driver.quit()
-
-
-def make_screenshot(driver, filename=None):
-    allure.attach(driver.get_screenshot_as_png(), attachment_type=AttachmentType.PNG)
 
 
 class LoginLogout:
@@ -82,11 +105,11 @@ class TestLogin:
             )
         with allure.step('Checking whether we logged into account'):
             make_screenshot(driver, 'click_logout_button')
-            assert elem.text == 'Anastasia', make_screenshot(driver)
+            assert elem.text == 'Anastasia'
         with allure.step('Exiting from the account'):
             driver = LoginLogout.logout(driver)
             elem = driver.find_element(By.CSS_SELECTOR, '#mui_user_login_row > span')
-            assert 'войти' in elem.text.lower(), make_screenshot(driver)
+            assert 'войти' in elem.text.lower()
 
 
 class TestCameras:
@@ -98,6 +121,7 @@ class TestCameras:
     @pytest.mark.parametrize('login, password', [
         (LOGIN, PASSWORD)
     ])
+    @make_screenshot_on_exception
     def test_find_cameras_with_nfc(self, driver, brand, model, login, password):
         with allure.step('Entering the username and password'):
             driver = LoginLogout.login(driver, login, password)
@@ -106,7 +130,7 @@ class TestCameras:
                     (By.CSS_SELECTOR, '#mui_user_login_row > a'))
             )
             make_screenshot(driver)
-            assert user.text == 'Anastasia', make_screenshot(driver)
+            assert user.text == 'Anastasia', 'The attempt of login is not successful.'
         with allure.step('Click on gadgets in the main menu'):
             driver.find_element(By.CSS_SELECTOR,
                                 'body > div.mainmenu.ff-roboto > div '
@@ -123,18 +147,15 @@ class TestCameras:
             all_brand.click()
             make_screenshot(driver)
         with allure.step('Choosing the brand of the camera'):
-            for i in range(1, 100):
-                try:
-                    current_brand = driver.find_element(By.XPATH, f'//*[@id="manufacturers_presets"]/ul/li[{i}]')
-                    driver.execute_script("arguments[0].scrollIntoView(true);", current_brand)
-                except Exception:
-                    continue
+            brands = driver.find_elements(By.XPATH, f'//*[@id="manufacturers_presets"]/ul/li')
+            for current_brand in brands:
                 if current_brand.text.lower() == brand.lower():
+                    driver.execute_script("arguments[0].scrollIntoView(true);", current_brand)
                     current_brand.click()
-                    break
-                if i == 99:
-                    assert False, make_screenshot(driver)
-            make_screenshot(driver)
+                    found_brand = True
+                    make_screenshot(driver)
+            if not found_brand:
+                assert False, f'The brand {brand} is not found'
         with allure.step('Choosing NFC'):
             nfc = driver.find_element(By.CSS_SELECTOR, '#preset18920 > li:nth-child(8) > label')
             driver.execute_script("arguments[0].scrollIntoView(true);", nfc)
@@ -156,7 +177,7 @@ class TestCameras:
                     camera = current_camera
                     break
             if camera is None:
-                assert False, make_screenshot(driver)
+                assert False, f'The camera {brand}-{model} is not found in the results of search'
             camera.click()
             make_screenshot(driver)
         with allure.step('Adding the camera to bookmarks'):
@@ -191,7 +212,7 @@ class TestCameras:
                     make_screenshot(driver)
                     break
             if bookmark is None:
-                assert False, make_screenshot(driver)
+                assert False, f'The camera {brand}-{model} is not found in the bookmarks'
         with allure.step('Opening the user\'s page. '
                          'Finding the camera in viewed ones and remove the camera from there'):
             driver.find_element(By.CSS_SELECTOR, '#mui_user_login_row > a').click()
@@ -211,11 +232,12 @@ class TestCameras:
                     ).click()
                     make_screenshot(driver)
             if not has_camera:
-                assert False, make_screenshot(driver)
+                assert False, f'The camera {brand}-{model} is not found in the history'
         with allure.step('Exiting from the account'):
             LoginLogout.logout(driver)
             login = driver.find_element(By.CSS_SELECTOR, '#mui_user_login_row > span')
-            assert 'войти' in login.text.lower(), make_screenshot(driver)
+            assert 'войти' in login.text.lower(), 'Unsuccessful logout'
+            make_screenshot(driver)
 
 
 class TestTablets:
@@ -278,4 +300,4 @@ class TestTablets:
             assert len(tablets) != 0, make_screenshot(driver)
             for tablet in tablets:
                 tablet_price = get_price_from_str(tablet.text)
-                assert tablet_price is not None and tablet_price < price, make_screenshot(driver)
+                assert tablet_price is not None and tablet_price < price
