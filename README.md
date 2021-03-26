@@ -17,6 +17,8 @@ To install dependencies:
 ## Running the tests
 It's necessary to install `ChromeDriver` ![https://pypi.org/project/selenium/](https://pypi.org/project/selenium/)
 
+To add login and password it necessary to create `resources/testing_data.py` file and add varibles `login` and `password`.
+
 To enable Allure listener to collect results during the test execution:
 ```pytest --alluredir=allure_report```
 
